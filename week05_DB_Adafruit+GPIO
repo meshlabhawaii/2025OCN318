@@ -1,0 +1,27 @@
+# this first one might not work. If not, follow the second one first OR try in sudo bash
+cd your-project-directory
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install adafruit-circuitpython-neopixel
+pip3 install anything else you had to pip3 install previously
+
+pip3 install --trusted-host pypi.org 
+--trusted-host pypi.python.org 
+--trusted-host files.pythonhosted.org 
+pip setuptools
+
+Sound must be disabled to use GPIO18. This can be done in /boot/config.txt
+by changing "dtparam=audio=on" to "dtparam=audio=off" and rebooting.
+
+sudo bash
+use text editor to edit /boot/config.txt
+change the line to off
+save
+reboot pi
+
+sudo bash
+use text editor to edit /boot/config.txt
+change "dtparam=audio=on" to "dtparam=audio=off"
+save
+exit
+Sudo reboot
