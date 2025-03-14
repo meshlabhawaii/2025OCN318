@@ -1,4 +1,4 @@
-Timestamp,Temperature (C), Pressure (hPA), Humidity (%)
+Timestamp,Temperature (C),Pressure (hPA),Humidity (%)
 2025-03-04 09:00:38,24.2350,101.9700,0.0000
 2025-03-04 09:05:38,24.7790,101.9970,0.0000
 2025-03-04 09:10:39,24.7530,101.9990,0.0000
