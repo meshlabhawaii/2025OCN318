@@ -1,0 +1,11 @@
+# DIRECTIONS FOR RUNNING A VIRTUAL ENVIRONMENT. RUN CODE IN VIRTUAL ENVIRONMENT TO USE ADAFRUIT COMPATABILITY
+# cd ~/[YOURDIRECTORYHERE]/
+sudo bash
+sudo apt update
+sudo apt install python3-pip
+source .venv/bin/activate
+pip3 install adafruit-circuitpython-ads1x15 
+pip3 install adafruit-blinka
+
+# python3 [yourcodehere]
+# replace your code and your direcctory, and delete hashes for those lines before running
