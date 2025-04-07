@@ -6,86 +6,67 @@ import matplotlib.pyplot as plt
 import board
 import busio
 
-# BME280 sensor
 from bme280 import BME280
 
-# ADS1115 and analog input handling
-from adafruit_ads1x15.ads1115 import ADS1115 as ADS1115_Driver
-from adafruit_ads1x15.ads1x15 import Mode, ADS as ADS_CHANNELS
+# ADS1115 for VH400 analog readings
+from adafruit_ads1x15.ads1115 import ADS1115
 from adafruit_ads1x15.analog_in import AnalogIn
+from adafruit_ads1x15.ads1x15 import Mode, ADS
 
-# === Set up I2C ===
+# === Set up I2C bus ===
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# === Initialize BME280 ===
+# === Initialize sensors ===
 sensorBME = BME280(i2c=i2c, address=0x76)
 
-# === Initialize ADS1115 for VH400 soil moisture sensor ===
-ads = ADS1115_Driver(i2c)
+ads = ADS1115(i2c)
 ads.mode = Mode.SINGLE
+soil_sensor = AnalogIn(ads, ADS.P0)  # VH400 connected to A0
 
-# VH400 connected to A0 (ADS channel 0)
-soil_channel = AnalogIn(ads, ADS_CHANNELS.P0)
-
-# === CSV log file ===
 log_file = "plant_log.csv"
-with open(log_file, 'w') as f:
+with open(log_file, "w") as f:
     f.write("timestamp,temperature,humidity,pressure,soil_voltage\n")
 
-# === Plot function ===
-def plantplot(df, param, ax=None):
-    if ax is None:
-        ax = plt.gca()
+# === Plotting helper ===
+def plot_param(df, param, ax):
     ax.set_xlabel("Time")
     ax.set_ylabel(param.capitalize())
     ax.plot(df['timestamp'], df[param])
+    ax.set_title(f"{param.capitalize()} Over Time")
 
-# === Logging Loop ===
+# === Main loop ===
 try:
     while True:
-        current_time = datetime.now()
-        formatted_time = current_time.strftime("%Y/%m/%d %H:%M:%S")
-        
-        # Read data from BME280
-        rBME = sensorBME.read()
-        temperature = rBME["t"]
-        humidity = rBME["h"]
-        pressure = rBME["p"]
+        now = datetime.now()
+        timestamp = now.strftime("%Y/%m/%d %H:%M:%S")
 
-        # Read VH400 soil moisture (voltage output)
-        soil_voltage = soil_channel.voltage
+        readings = sensorBME.read()
+        temp = readings["t"]
+        hum = readings["h"]
+        pres = readings["p"]
+        soil = soil_sensor.voltage
 
-        # Write to CSV
-        with open(log_file, 'a') as f:
-            f.write(f"{formatted_time},{temperature:.2f},{humidity:.2f},{pressure:.2f},{soil_voltage:.3f}\n")
+        # Log data
+        with open(log_file, "a") as f:
+            f.write(f"{timestamp},{temp:.2f},{hum:.2f},{pres:.2f},{soil:.3f}\n")
 
-        # Print to console
-        print(f"{formatted_time} | Temp: {temperature:.2f}°C | Humidity: {humidity:.2f}% | Pressure: {pressure:.2f} hPa | Soil: {soil_voltage:.3f} V")
+        print(f"{timestamp} | Temp: {temp:.2f}°C | Hum: {hum:.2f}% | Pressure: {pres:.2f} hPa | Soil V: {soil:.3f}V")
 
-        # Sleep for 6 minutes
-        time.sleep(360)
+        time.sleep(360)  # 6 minutes
 
 except KeyboardInterrupt:
-    print("Logging stopped. Generating plot...")
+    print("\nLogging stopped. Plotting data...")
 
-    # Load and plot data
     df = pd.read_csv(log_file)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
-    fig.suptitle("Plant Log Data Over Time")
+    fig, axs = plt.subplots(2, 2, figsize=(14, 8))
+    fig.suptitle("Environmental Sensor Log")
 
-    plantplot(df, 'temperature', ax=axs[0][0])
-    axs[0][0].set_title("Temperature (°C)")
-
-    plantplot(df, 'humidity', ax=axs[0][1])
-    axs[0][1].set_title("Humidity (%)")
-
-    plantplot(df, 'pressure', ax=axs[1][0])
-    axs[1][0].set_title("Pressure (hPa)")
-
-    plantplot(df, 'soil_voltage', ax=axs[1][1])
-    axs[1][1].set_title("Soil Moisture Voltage (V)")
+    plot_param(df, 'temperature', axs[0][0])
+    plot_param(df, 'humidity', axs[0][1])
+    plot_param(df, 'pressure', axs[1][0])
+    plot_param(df, 'soil_voltage', axs[1][1])
 
     plt.tight_layout()
     plt.show()
