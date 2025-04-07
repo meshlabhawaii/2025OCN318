@@ -1,31 +1,38 @@
+import time
+from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-from bme280 import BME280
-from datetime import datetime
-import time
+
 import board
 import busio
 
-# ADS1115 libraries
-from adafruit_ads1x15.ads1115 import ADS1115
+# BME280 sensor
+from bme280 import BME280
+
+# ADS1115 and analog input handling
+from adafruit_ads1x15.ads1115 import ADS1115 as ADS1115_Driver
+from adafruit_ads1x15.ads1x15 import Mode, ADS as ADS_CHANNELS
 from adafruit_ads1x15.analog_in import AnalogIn
 
-# === Set up I2C for both BME280 and ADS1115 ===
+# === Set up I2C ===
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# === Set up BME280 ===
-sensorBME = BME280(i2c, address=0x76)
+# === Initialize BME280 ===
+sensorBME = BME280(i2c=i2c, address=0x76)
 
-# === Set up ADS1115 (for VH400 soil moisture) ===
-ads = ADS1115(i2c)
-soil_channel = AnalogIn(ads, ADS1115.P0)  # VH400 connected to A0
+# === Initialize ADS1115 for VH400 soil moisture sensor ===
+ads = ADS1115_Driver(i2c)
+ads.mode = Mode.SINGLE
 
-# === Create the log file ===
+# VH400 connected to A0 (ADS channel 0)
+soil_channel = AnalogIn(ads, ADS_CHANNELS.P0)
+
+# === CSV log file ===
 log_file = "plant_log.csv"
 with open(log_file, 'w') as f:
     f.write("timestamp,temperature,humidity,pressure,soil_voltage\n")
 
-# === Function to plot parameters from the log ===
+# === Plot function ===
 def plantplot(df, param, ax=None):
     if ax is None:
         ax = plt.gca()
@@ -33,39 +40,38 @@ def plantplot(df, param, ax=None):
     ax.set_ylabel(param.capitalize())
     ax.plot(df['timestamp'], df[param])
 
-# === Main logging loop ===
+# === Logging Loop ===
 try:
     while True:
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y/%m/%d %H:%M:%S")
         
-        # Read environmental data
+        # Read data from BME280
         rBME = sensorBME.read()
         temperature = rBME["t"]
         humidity = rBME["h"]
         pressure = rBME["p"]
 
-        # Read VH400 voltage from ADS1115
+        # Read VH400 soil moisture (voltage output)
         soil_voltage = soil_channel.voltage
 
-        # Log to CSV
+        # Write to CSV
         with open(log_file, 'a') as f:
             f.write(f"{formatted_time},{temperature:.2f},{humidity:.2f},{pressure:.2f},{soil_voltage:.3f}\n")
 
         # Print to console
         print(f"{formatted_time} | Temp: {temperature:.2f}°C | Humidity: {humidity:.2f}% | Pressure: {pressure:.2f} hPa | Soil: {soil_voltage:.3f} V")
 
-        # Wait 6 minutes
+        # Sleep for 6 minutes
         time.sleep(360)
 
 except KeyboardInterrupt:
-    print("Logging stopped. Now plotting data...")
+    print("Logging stopped. Generating plot...")
 
-    # Load the CSV into a DataFrame
+    # Load and plot data
     df = pd.read_csv(log_file)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # Plot the data
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))
     fig.suptitle("Plant Log Data Over Time")
 
