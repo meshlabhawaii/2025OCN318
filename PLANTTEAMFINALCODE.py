@@ -55,9 +55,9 @@ try:
         else:
             moisture = (voltage - 1.1) / (3.0 - 1.1) * 100
         
-        if moisture < 10:
+        if moisture < 15:
             GPIO.output(PUMP_PIN, GPIO.HIGH)
-            time.sleep(4)
+            time.sleep(5)
             GPIO.output(PUMP_PIN, GPIO.LOW)
 
         # Get temperature and pressure from BME280
@@ -77,7 +77,7 @@ try:
         print(f"{timestamp} | Moisture: {moisture:.1f}% | Voltage: {voltage:.3f} V | Temp: {temperature} C | Pressure: {pressure} hPa")
 
         # Wait 6 s
-        time.sleep(6)
+        time.sleep(60)
     
 except KeyboardInterrupt:
     print("Program interrupted. Cleaning up...")
